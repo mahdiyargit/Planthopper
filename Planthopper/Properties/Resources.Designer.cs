@@ -83,6 +83,16 @@ namespace Planthopper.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Drawing.Bitmap.
         /// </summary>
+        internal static System.Drawing.Bitmap counter {
+            get {
+                object obj = ResourceManager.GetObject("counter", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        /// </summary>
         internal static System.Drawing.Bitmap deconstructGear {
             get {
                 object obj = ResourceManager.GetObject("deconstructGear", resourceCulture);
@@ -96,6 +106,16 @@ namespace Planthopper.Properties {
         internal static System.Drawing.Bitmap gearParam {
             get {
                 object obj = ResourceManager.GetObject("gearParam", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        /// </summary>
+        internal static System.Drawing.Bitmap planetaryGear {
+            get {
+                object obj = ResourceManager.GetObject("planetaryGear", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
             }
         }

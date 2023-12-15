@@ -1,4 +1,5 @@
 ﻿using Grasshopper.Kernel;
+using Rhino;
 using Rhino.Geometry;
 using Rhino.Geometry.Intersect;
 using System;
@@ -66,7 +67,7 @@ namespace Planthopper.Parameter
             PitchRadius = n * width / Math.PI;
             if (addendum < tolerance && dedendum < tolerance)
             {
-                GearCurve = new Circle(PitchRadius).ToNurbsCurve();
+                GearCurve = new Circle(Plane, PitchRadius).ToNurbsCurve();
                 Addendum = 0.0;
                 Dedendum = 0.0;
                 BaseRadius = PitchRadius;
@@ -110,7 +111,7 @@ namespace Planthopper.Parameter
                 trochoidCurve = trochoidCurve.Trim(trochoidCurve.Domain[0], x[0].ParameterB);
                 x = Intersection.CurveCurve(trochoidCurve, dedCircle.ToNurbsCurve(), tolerance, 0);
                 trochoidCurve = trochoidCurve.Trim(x[0].ParameterA, trochoidCurve.Domain[0]);
-                c = Curve.JoinCurves(new Curve[] { involuteCurve, trochoidCurve })[0];
+                c = Curve.JoinCurves(new[] { involuteCurve, trochoidCurve }, tolerance)[0];
             }
 
             var a1 = PointAngle(c.PointAtEnd); //start, end
@@ -118,13 +119,13 @@ namespace Planthopper.Parameter
             var a2 = PointAngle(c.PointAtStart); //start, end
             var arc2 = new Arc(addCircle, new Interval(a2, 2 * angle - a2));
 
-            var d = Curve.JoinCurves(new[] { arc1.ToNurbsCurve(), c, arc2.ToNurbsCurve() })[0];
+            var d = Curve.JoinCurves(new[] { arc1.ToNurbsCurve(), c, arc2.ToNurbsCurve() }, tolerance)[0];
             var curves = new List<Curve> { d };
             var e = c.DuplicateCurve();
             e.Transform(Transform.Mirror(Point3d.Origin, Vector3d.YAxis));
             curves.Add(e);
             var xForm = Transform.Rotation(Math.PI / n * 2, Point3d.Origin);
-            var f = Curve.JoinCurves(curves)[0];
+            var f = Curve.JoinCurves(curves, tolerance)[0];
             curves = new List<Curve>() { f };
             for (var i = 1; i < n; i++)
             {
@@ -132,7 +133,7 @@ namespace Planthopper.Parameter
                 g.Transform(xForm);
                 curves.Add(g);
             }
-            GearCurve = Curve.JoinCurves(curves)[0];
+            GearCurve = Curve.JoinCurves(curves, tolerance)[0];
             xForm = Transform.PlaneToPlane(Plane.WorldXY, Plane);
             GearCurve.Transform(xForm);
         }
@@ -160,55 +161,49 @@ namespace Planthopper.Parameter
 
         public Mesh ToMesh()
         {
-            var segments = GearCurve.DuplicateSegments();
-            var pl = new Polyline();
+            var pl = GearCurve.ToPolyline(-1, -1, 0.2, 10, 100, 0.1, 1, 50, false).ToPolyline();
+            if (IsExternal)
             {
-                if (Addendum < 0.01 && Dedendum < 0.01)
-                    pl = Polyline.CreateCircumscribedPolygon(new Circle(Plane, PitchRadius), 30);
-                else
-                    foreach (var segment in segments)
-                    {
-                        pl.Add(segment.PointAtStart);
-                        segment.DivideByCount(4, false, out var pts);
-                        pl.AddRange(pts);
-                    }
+                if (Hole > DedRadius || Hole < 0.01)
+                {
+                    pl.Add(pl[0]);
+                    return Mesh.CreateFromTessellation(pl, new List<Polyline> { pl }, Plane, false);
+                }
+                var circle = Polyline.CreateCircumscribedPolygon(new Circle(Plane, Hole), 30);
+                var pts = new List<Point3d>(pl);
+                pts.AddRange(circle);
+                pl.Add(pl[0]);
+                circle.Add(circle[0]);
+                var mesh = Mesh.CreateFromTessellation(pts, new List<Polyline> { pl, circle }, Plane, false);
+                var indices = new List<int>();
+                for (var i = 0; i < mesh.Faces.Count; i++)
+                {
+                    if (mesh.Faces.GetFaceCenter(i).DistanceToSquared(Plane.Origin) < Hole * Hole)
+                        indices.Add((i));
+                }
+                mesh.Faces.DeleteFaces(indices);
+                return mesh;
             }
-            pl.Add(pl[0]);
-            Mesh mesh;
-            switch (IsExternal)
+            else
             {
-                case true when Hole > DedRadius || Hole < 0.01:
-                    mesh = Mesh.CreateFromClosedPolyline(pl);
-                    return mesh;
-                case true:
-                    {
-                        var circle = Polyline.CreateCircumscribedPolygon(new Circle(Plane, IsExternal ? Hole : AddRadius + Hole), 30);
-                        mesh = Mesh.CreatePatch(pl, 0.1, null, null, null, circle, false, 0);
-                        var indices = new List<int>();
-                        for (var i = 0; i < mesh.Faces.Count; i++)
-                        {
-                            if (mesh.Faces.GetFaceCenter(i).DistanceToSquared(Plane.Origin) < Hole * Hole)
-                                indices.Add((i));
-                        }
-                        mesh.Faces.DeleteFaces(indices, true);
-                        return mesh;
-                    }
-                case false:
-                    {
-                        var circle = Polyline.CreateCircumscribedPolygon(new Circle(Plane, IsExternal ? Hole : AddRadius + Hole), 60);
-                        mesh = Mesh.CreatePatch(circle, 0.1, null, null, null, pl, false, 0);
-                        var indices = new List<int>();
-                        var insideMesh = Mesh.CreateFromClosedPolyline(pl);
-                        for (var i = 0; i < mesh.Faces.Count; i++)
-                        {
-                            if (insideMesh.ClosestMeshPoint(mesh.Faces.GetFaceCenter(i), 0.01) == null) continue;
-                            indices.Add(i);
-                        }
-                        mesh.Faces.DeleteFaces(indices, true);
-                        return mesh;
-                    }
+                var circle = Polyline.CreateCircumscribedPolygon(new Circle(Plane, Hole + AddRadius), 60);
+                var pts = new List<Point3d>(pl);
+                pts.AddRange(circle);
+                pl.Add(pl[0]);
+                circle.Add(circle[0]);
+                var mesh = Mesh.CreateFromTessellation(pts, new List<Polyline> { pl, circle }, Plane, false);
+                var indices = new List<int>();
+                var insideMesh = Mesh.CreateFromClosedPolyline(pl);
+                for (var i = 0; i < mesh.Faces.Count; i++)
+                {
+                    if (insideMesh.ClosestMeshPoint(mesh.Faces.GetFaceCenter(i), 0.01) == null) continue;
+                    indices.Add(i);
+                }
+                mesh.Faces.DeleteFaces(indices);
+                return mesh;
             }
         }
+        public Brep ToBrep() => Brep.CreatePlanarBreps(new[] { GearCurve, new Circle(Plane, IsExternal ? Hole : AddRadius + Hole).ToNurbsCurve() }, RhinoDoc.ActiveDoc.ModelAbsoluteTolerance)[0];
         public void XFormAll(Transform xForm)
         {
             var plane = Plane;

@@ -15,14 +15,13 @@ namespace Planthopper
 {
     public class ConstructGearComp : GH_Component
     {
-        private bool _useDegrees;
+        private bool _useDegrees2;
+        private bool _useDegrees7;
         private Interval _angleDomain = new Interval(RhinoMath.ToRadians(10), RhinoMath.ToRadians(35));
         private bool _previewMesh = true;
         private List<Mesh> _meshes;
         public ConstructGearComp() : base("Construct Gear", "Gear", "Create an involute gear", "Planthopper", "Gear")
         { }
-
-        public override GH_Exposure Exposure => GH_Exposure.primary;
         protected override void RegisterInputParams(GH_InputParamManager pManager)
         {
             pManager.AddPlaneParameter("Plane", "P", "Plane", GH_ParamAccess.item, Plane.WorldXY);
@@ -46,9 +45,12 @@ namespace Planthopper
         protected override void BeforeSolveInstance()
         {
             _meshes = new List<Mesh>();
-            _useDegrees = false;
-            if (Params.Input[2] is Param_Number pAParameter)
-                _useDegrees = pAParameter.UseDegrees;
+            _useDegrees2 = false;
+            _useDegrees7 = false;
+            if (Params.Input[2] is Param_Number p2)
+                _useDegrees2 = p2.UseDegrees;
+            if (Params.Input[7] is Param_Number p7)
+                _useDegrees7 = p7.UseDegrees;
         }
         protected override void SolveInstance(IGH_DataAccess dataAccess)
         {
@@ -65,7 +67,7 @@ namespace Planthopper
             }
             dataAccess.GetData(2, ref pAngle);
             pAngle = Math.Abs(pAngle);
-            pAngle = _useDegrees ? RhinoMath.ToRadians(pAngle) : pAngle;
+            pAngle = _useDegrees2 ? RhinoMath.ToRadians(pAngle) : pAngle;
             if (!_angleDomain.IncludesParameter(pAngle))
             {
                 pAngle = RhinoMath.Clamp(pAngle, _angleDomain.T0, _angleDomain.T1);
@@ -87,12 +89,14 @@ namespace Planthopper
             dataAccess.GetData(6, ref hole);
             var rotation = 0.0;
             dataAccess.GetData(7, ref rotation);
+            rotation = _useDegrees7 ? RhinoMath.ToRadians(rotation) : rotation;
             var type = 0;
             dataAccess.GetData(8, ref type);
             hole = Math.Abs(hole);
             var addendum = type == 2 ? initDed : initAdd;
             var dedendum = type == 2 ? initAdd : initDed;
             var gear = new Gear(plane, n, width, pAngle, ref addendum, ref dedendum, type != 2, hole, tolerance);
+            Message = type != 2 ? "External" : "Internal";
             if ((type == 2 ? initDed : initAdd) > addendum)
                 AddRuntimeMessage(GH_RuntimeMessageLevel.Warning,
                     $"Addendum must be smaller than or equal to {addendum}");
@@ -100,11 +104,13 @@ namespace Planthopper
                 AddRuntimeMessage(GH_RuntimeMessageLevel.Warning,
                     $"Dedendum must be smaller than or equal to {dedendum}");
             gear.Rotate(rotation);
-            if (_previewMesh)
+            if (_previewMesh && !Hidden)
                 _meshes.Add(gear.ToMesh());
             dataAccess.SetData(0, new GH_Gear(gear));
         }
         protected override Bitmap Icon => Resources.constructGear;
+        public override Guid ComponentGuid => new Guid("cbb5c2c2-c181-465c-a0f6-8090e211888a");
+        public override GH_Exposure Exposure => GH_Exposure.primary;
         public override void AppendAdditionalMenuItems(ToolStripDropDown menu)
         {
             Menu_AppendSeparator(menu);
@@ -137,7 +143,5 @@ namespace Planthopper
             _previewMesh = previewMesh;
             return base.Read(reader);
         }
-
-        public override Guid ComponentGuid => new Guid("cbb5c2c2-c181-465c-a0f6-8090e211888a");
     }
 }

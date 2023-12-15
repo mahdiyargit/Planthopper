@@ -22,6 +22,7 @@ namespace Planthopper
             pManager.AddCircleParameter("BaseCircle", "BC", "Base circle", GH_ParamAccess.item);
             pManager.AddCircleParameter("AddCircle", "AC", "Addendum circle", GH_ParamAccess.item);
             pManager.AddCircleParameter("DedCircle", "DC", "Dedendum circle", GH_ParamAccess.item);
+            pManager.AddCircleParameter("HoleCircle", "HC", "Shaft hole for External gear.\nOffset circle for Internal gear.", GH_ParamAccess.item);
         }
         protected override void SolveInstance(IGH_DataAccess dataAccess)
         {
@@ -35,8 +36,16 @@ namespace Planthopper
             dataAccess.SetData(5, new Circle(g.Plane, g.BaseRadius));
             dataAccess.SetData(6, new Circle(g.Plane, g.AddRadius));
             dataAccess.SetData(7, new Circle(g.Plane, g.DedRadius));
+            if (g.IsExternal)
+            {
+                if (g.Hole < g.DedRadius)
+                    dataAccess.SetData(8, new Circle(g.Plane, g.Hole));
+            }
+            else
+                dataAccess.SetData(8, new Circle(g.Plane, g.Hole + g.AddRadius));
         }
         protected override System.Drawing.Bitmap Icon => Properties.Resources.deconstructGear;
+        public override GH_Exposure Exposure => GH_Exposure.secondary;
         public override Guid ComponentGuid => new Guid("7A1DF9A6-933D-4464-AFD9-3A688A180176");
     }
 }

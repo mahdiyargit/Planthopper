@@ -124,10 +124,16 @@
   <data name="constructGear" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\Resources\constructGear.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
+  <data name="counter" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\counter.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
   <data name="deconstructGear" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\Resources\deconstructGear.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
   <data name="gearParam" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\Resources\gearParam.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="planetaryGear" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\planetaryGear.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
 </root>

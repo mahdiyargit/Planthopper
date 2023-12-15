@@ -32,7 +32,7 @@ namespace Planthopper
             type.AddNamedValue("Internal", 2);
         }
         protected override void RegisterOutputParams(GH_OutputParamManager pManager) =>
-            pManager.AddParameter(new GH_GearParam(), "G", "G", "G", GH_ParamAccess.item);
+            pManager.AddParameter(new GH_GearParam(), "Gear", "G", "Gear", GH_ParamAccess.item);
 
         protected override void BeforeSolveInstance()
         {
@@ -56,7 +56,6 @@ namespace Planthopper
                 n = 3;
                 AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, "Number of teeth must be larger than or equal to 3");
             }
-
             var hole = 0.0;
             dataAccess.GetData(3, ref hole);
             var type = 0;
@@ -66,14 +65,14 @@ namespace Planthopper
             var addendum = (type == 2 || parentGear.IsExternal) ? parentGear.Addendum : parentGear.Dedendum;
             var parentPlane = parentGear.Plane;
             var gear = new Gear(parentPlane, n, parentGear.Width, parentGear.PAngle, ref dedendum, ref addendum, type != 2, hole, Utility.DocumentTolerance());
+            Message = type != 2 ? "External" : "Internal";
             if (parentGear.Addendum > addendum)
                 AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, $"Parent addendum must be smaller than or equal to {addendum}");
             if (parentGear.Dedendum > dedendum)
                 AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, $"Parent dedendum must be smaller than or equal to {dedendum}");
             if (type == 1)
-            {
                 gear.Rotate(angle + parentGear.Rotation);
-            }
+
             else if (type == 0 && parentGear.IsExternal || type == 2 && !parentGear.IsExternal)
             {
                 var vector = (parentGear.PitchRadius + gear.PitchRadius) * parentPlane.XAxis;
@@ -95,12 +94,14 @@ namespace Planthopper
                 angle += (n % 2) == 0 ? Math.PI / n : 0;
                 gear.Rotate(-angle);
             }
-            if (_previewMesh)
+            if (_previewMesh && !Hidden)
                 _meshes.Add(gear.ToMesh());
             dataAccess.SetData(0, new GH_Gear(gear));
         }
 
         protected override System.Drawing.Bitmap Icon => Properties.Resources.childGear;
+        public override Guid ComponentGuid => new Guid("545B35AE-6006-41DC-8422-DFB7731A8741");
+        public override GH_Exposure Exposure => GH_Exposure.primary;
         public override void AppendAdditionalMenuItems(ToolStripDropDown menu)
         {
             Menu_AppendSeparator(menu);
@@ -133,6 +134,5 @@ namespace Planthopper
             _previewMesh = previewMesh;
             return base.Read(reader);
         }
-        public override Guid ComponentGuid => new Guid("545B35AE-6006-41DC-8422-DFB7731A8741");
     }
 }

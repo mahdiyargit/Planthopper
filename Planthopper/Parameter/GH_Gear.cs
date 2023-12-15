@@ -54,7 +54,9 @@ namespace Planthopper.Parameter
             args.Pipeline.DrawCircle(circle, args.Color, args.Thickness);
         }
 
-        public void DrawViewportMeshes(GH_PreviewMeshArgs args) { }
+        public void DrawViewportMeshes(GH_PreviewMeshArgs args)
+        {
+        }
         public bool BakeGeometry(RhinoDoc doc, ObjectAttributes att, out Guid objGuid)
         {
             objGuid = doc.Objects.AddCurve(m_value.GearCurve, att);
@@ -112,6 +114,12 @@ namespace Planthopper.Parameter
             if (typeof(T).IsAssignableFrom(typeof(GH_Mesh)))
             {
                 target = (T)(object)new GH_Mesh(m_value.ToMesh());
+                return true;
+            }
+
+            if (typeof(T).IsAssignableFrom(typeof(GH_Surface)))
+            {
+                target = (T)(object)new GH_Surface(m_value.ToBrep());
                 return true;
             }
             return false;
