@@ -17,10 +17,10 @@ namespace Planthopper.Parameter
         public GH_Gear(GH_Gear ghGear) => m_value = ghGear.m_value;
         public override string TypeName => "Gear";
         public override string TypeDescription => "Gear";
-        public override BoundingBox Boundingbox => new Circle(m_value.Plane, m_value.IsExternal ? m_value.AddRadius : m_value.AddRadius + m_value.Hole).BoundingBox;
+        public override BoundingBox Boundingbox => new Circle(m_value.Plane, m_value.IsExternal ? m_value.AddRad : m_value.AddRad + m_value.Hole).BoundingBox;
         public override BoundingBox GetBoundingBox(Transform xform)
         {
-            var addCir = new Circle(m_value.Plane, m_value.IsExternal ? m_value.AddRadius : m_value.AddRadius + m_value.Hole);
+            var addCir = new Circle(m_value.Plane, m_value.IsExternal ? m_value.AddRad : m_value.AddRad + m_value.Hole);
             return addCir.ToNurbsCurve().GetBoundingBox(xform);
         }
         public BoundingBox ClippingBox => Boundingbox;
@@ -49,8 +49,8 @@ namespace Planthopper.Parameter
         {
             args.Pipeline.DrawCurve(m_value.GearCurve, args.Color, args.Thickness);
             args.Pipeline.DrawPoint(m_value.Plane.Origin, PointStyle.X, 5, args.Color);
-            if (m_value.IsExternal && m_value.Hole > m_value.DedRadius || m_value.Hole < 0.01) return;
-            var circle = new Circle(m_value.Plane, m_value.IsExternal ? m_value.Hole : m_value.AddRadius + m_value.Hole);
+            if (m_value.IsExternal && m_value.Hole > m_value.DedRad || m_value.Hole < 0.01) return;
+            var circle = new Circle(m_value.Plane, m_value.IsExternal ? m_value.Hole : m_value.AddRad + m_value.Hole);
             args.Pipeline.DrawCircle(circle, args.Color, args.Thickness);
         }
 
@@ -61,8 +61,8 @@ namespace Planthopper.Parameter
         {
             objGuid = doc.Objects.AddCurve(m_value.GearCurve, att);
             doc.Objects.AddPoint(m_value.Plane.Origin);
-            if (m_value.IsExternal && m_value.Hole > m_value.DedRadius || m_value.Hole < 0.01) return true;
-            var circle = new Circle(m_value.Plane, m_value.IsExternal ? m_value.Hole : m_value.AddRadius + m_value.Hole);
+            if (m_value.IsExternal && m_value.Hole > m_value.DedRad || m_value.Hole < 0.01) return true;
+            var circle = new Circle(m_value.Plane, m_value.IsExternal ? m_value.Hole : m_value.AddRad + m_value.Hole);
             doc.Objects.AddCircle(circle, att);
             return true;
         }
@@ -97,7 +97,7 @@ namespace Planthopper.Parameter
             }
             if (typeof(T).IsAssignableFrom(typeof(GH_Circle)))
             {
-                target = (T)(object)new GH_Circle(new Circle(m_value.Plane, m_value.PitchRadius));
+                target = (T)(object)new GH_Circle(new Circle(m_value.Plane, m_value.PitchRad));
                 return true;
             }
             if (typeof(T).IsAssignableFrom(typeof(GH_Curve)))
@@ -136,8 +136,8 @@ namespace Planthopper.Parameter
             writer.SetDouble("PAngle", m_value.PAngle);
             writer.SetDouble("Addendum", m_value.Addendum);
             writer.SetDouble("Dedendum", m_value.Dedendum);
-            writer.SetDouble("PitchRadius", m_value.PitchRadius);
-            writer.SetDouble("BaseRadius", m_value.BaseRadius);
+            writer.SetDouble("PitchRad", m_value.PitchRad);
+            writer.SetDouble("BaseRad", m_value.BaseRad);
             var byteArray = GH_Convert.CommonObjectToByteArray(m_value.GearCurve);
             if (byteArray != null) writer.SetByteArray("GearCurve", byteArray);
             return true;
@@ -154,8 +154,8 @@ namespace Planthopper.Parameter
             var pAngle = reader.GetDouble("PAngle");
             var addendum = reader.GetDouble("Addendum");
             var dedendum = reader.GetDouble("Dedendum");
-            var pithRadius = reader.GetDouble("PitchRadius");
-            var baseRadius = reader.GetDouble("BaseRadius");
+            var pithRadius = reader.GetDouble("PitchRad");
+            var baseRadius = reader.GetDouble("BaseRad");
             Curve gearCurve = null;
             if (reader.ItemExists("GearCurve"))
                 gearCurve = GH_Convert.ByteArrayToCommonObject<Curve>(reader.GetByteArray("GearCurve"));

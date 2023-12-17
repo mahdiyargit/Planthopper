@@ -185,21 +185,21 @@ namespace Planthopper
             {
                 planets[i] = new Gear(planet);
                 var a = Math.Round(i * factor) * step + angleP;
-                vector = (sun.PitchRadius + planets[i].PitchRadius) * sun.Plane.XAxis;
+                vector = (sun.PitchRad + planets[i].PitchRad) * sun.Plane.XAxis;
                 vector.Rotate(a, sun.Plane.ZAxis);
                 planets[i].XFormAll(Transform.Translation(new Vector3d(vector)));
-                a += (-sun.Rotation + a) * (sun.BaseRadius / planets[i].BaseRadius);
+                a += (-sun.Rotation + a) * (sun.BaseRad / planets[i].BaseRad);
                 a += zp % 2 == 0 ? Math.PI / zp : 0;
                 planets[i].Rotate(a);
             }
 
             planet = planets[0];
             var ring = new Gear(planet.Plane, zr, width, pAngle, ref dedendum, ref addendum, false, hole, tolerance);
-            vector = (ring.PitchRadius - planet.PitchRadius) * planet.Plane.XAxis;
+            vector = (ring.PitchRad - planet.PitchRad) * planet.Plane.XAxis;
             vector.Rotate(angleR, planet.Plane.ZAxis);
             ring.XFormAll(Transform.Translation(new Vector3d(vector)));
             angleR *= -1;
-            angleR += (planet.Rotation + angleR) * (-planet.BaseRadius / ring.BaseRadius);
+            angleR += (planet.Rotation + angleR) * (-planet.BaseRad / ring.BaseRad);
             angleR += (planet.N % 2) == 0 ? Math.PI / zr : 0;
             angleR += (zr % 2) == 0 ? Math.PI / zr : 0;
             ring.Rotate(-angleR);

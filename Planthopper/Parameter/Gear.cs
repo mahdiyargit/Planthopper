@@ -4,8 +4,6 @@ using Rhino.Geometry;
 using Rhino.Geometry.Intersect;
 using System;
 using System.Collections.Generic;
-using Mesh = Rhino.Geometry.Mesh;
-
 namespace Planthopper.Parameter
 {
     public class Gear
@@ -19,16 +17,16 @@ namespace Planthopper.Parameter
         public double PAngle { get; }
         public double Addendum { get; }
         public double Dedendum { get; }
-        public double PitchRadius { get; }
-        public double BaseRadius { get; }
-        public double AddRadius => PitchRadius + Addendum;
-        public double DedRadius => PitchRadius - Dedendum;
+        public double PitchRad { get; }
+        public double BaseRad { get; }
+        public double AddRad => PitchRad + Addendum;
+        public double DedRad => PitchRad - Dedendum;
         public Curve GearCurve { get; }
         public Gear()
         { }
         public Gear(Gear g)
         {
-            Plane = new Plane(g.Plane);
+            Plane = g.Plane;
             Rotation = g.Rotation;
             IsExternal = g.IsExternal;
             Hole = g.Hole;
@@ -37,13 +35,13 @@ namespace Planthopper.Parameter
             PAngle = g.PAngle;
             Addendum = g.Addendum;
             Dedendum = g.Dedendum;
-            PitchRadius = g.PitchRadius;
-            BaseRadius = g.BaseRadius;
+            PitchRad = g.PitchRad;
+            BaseRad = g.BaseRad;
             GearCurve = g.GearCurve.DuplicateCurve();
         }
-        public Gear(Plane plane, double rotation, bool isExternal, double hole, int n, double width, double pAngle, double addendum, double dedendum, double pitchRadius, double baseRadius, Curve gearCurve)
+        public Gear(Plane plane, double rotation, bool isExternal, double hole, int n, double width, double pAngle, double addendum, double dedendum, double pitchRad, double baseRad, Curve gearCurve)
         {
-            Plane = new Plane(plane);
+            Plane = plane;
             Rotation = rotation;
             IsExternal = isExternal;
             Hole = hole;
@@ -52,8 +50,8 @@ namespace Planthopper.Parameter
             PAngle = pAngle;
             Addendum = addendum;
             Dedendum = dedendum;
-            PitchRadius = pitchRadius;
-            BaseRadius = baseRadius;
+            PitchRad = pitchRad;
+            BaseRad = baseRad;
             GearCurve = gearCurve;
         }
         public Gear(Plane plane, int n, double width, double pAngle, ref double addendum, ref double dedendum, bool isExternal, double hole, double tolerance)
@@ -64,78 +62,84 @@ namespace Planthopper.Parameter
             N = n;
             Width = width;
             PAngle = pAngle;
-            PitchRadius = n * width / Math.PI;
+            PitchRad = n * width / Math.PI;
             if (addendum < tolerance && dedendum < tolerance)
             {
-                GearCurve = new Circle(Plane, PitchRadius).ToNurbsCurve();
+                GearCurve = new Circle(Plane, PitchRad).ToNurbsCurve();
                 Addendum = 0.0;
                 Dedendum = 0.0;
-                BaseRadius = PitchRadius;
+                BaseRad = PitchRad;
                 return;
             }
-            BaseRadius = Math.Cos(pAngle) * PitchRadius;
-            var angle = Math.PI / n; //maybe we can merge this with invAngle
+            BaseRad = Math.Cos(pAngle) * PitchRad;
+            var angle = Math.PI / n;
             var invAng = Math.Tan(pAngle) - pAngle;
-            var alpha = 0.5 * angle + invAng; //MirrorLine angle alpha
-            var beta = 1.0; //a carefully chosen starting value, involute domain angle
-            while (Math.Abs(Math.Tan(beta) - beta - alpha) > 10e-10)
-                beta -= (Math.Tan(beta) - beta - alpha) / Math.Pow(Math.Tan(beta), 2);
-
-            var maxRadius = BaseRadius / Math.Cos(beta); //maximum addendum circle
-
-            if (addendum > maxRadius - PitchRadius) addendum = maxRadius - PitchRadius;
-            if (dedendum > maxRadius - PitchRadius) dedendum = maxRadius - PitchRadius;
+            //Calculate the mirror line angle alpha
+            var α = 0.5 * angle + invAng;
+            //A carefully chosen starting value, involute domain angle
+            var β = 1.0;
+            while (Math.Abs(Math.Tan(β) - β - α) > 10e-10)
+                β -= (Math.Tan(β) - β - α) / Math.Pow(Math.Tan(β), 2);
+            var maxRad = BaseRad / Math.Cos(β);
+            if (addendum > maxRad - PitchRad) addendum = Math.Floor((maxRad - PitchRad) / tolerance) * tolerance;
+            if (dedendum > maxRad - PitchRad) dedendum = Math.Floor((maxRad - PitchRad) / tolerance) * tolerance;
             Addendum = addendum;
             Dedendum = dedendum;
-
-            var involuteStart = new Point3d(BaseRadius, 0.0, 0.0);
-            var trochoidStart = new Point3d(DedRadius, width * 0.5 - Math.Tan(pAngle) * dedendum, 0);
-
-            var addCircle = new Circle(AddRadius);
-            var dedCircle = new Circle(DedRadius);
-
-            var involuteCurve = MoveAndRotate(involuteStart, -maxRadius, 0.0, -BaseRadius, 100);
-            var x = Intersection.CurveCurve(involuteCurve, new Circle(PitchRadius).ToNurbsCurve(), tolerance, 0);
-            involuteCurve.Rotate(-PointAngle(involuteCurve.PointAt(x[0].ParameterA)), Vector3d.ZAxis, Point3d.Origin);
-            x = Intersection.CurveCurve(involuteCurve, addCircle.ToNurbsCurve(), tolerance, 0);
-
-            involuteCurve = involuteCurve.Trim(x[0].ParameterA, involuteCurve.Domain.T1);
-
-            involuteCurve.Rotate(Math.PI / 2 / n, Vector3d.ZAxis, Point3d.Origin);
-            var trochoidCurve = MoveAndRotate(trochoidStart, -maxRadius / 3.0, maxRadius / 2, -PitchRadius, 100);
-            x = Intersection.CurveCurve(involuteCurve, trochoidCurve, tolerance, 0);
-            involuteCurve = involuteCurve.Trim(involuteCurve.Domain[0], x[0].ParameterA);
-            var c = involuteCurve;
+            var trochoidStart = new Point3d(DedRad, width * 0.5 - Math.Tan(pAngle) * dedendum, 0.0);
+            var addCir = new Circle(AddRad);
+            var dedCir = new Circle(DedRad);
+            var involuteCrv = MoveAndRotate(new Point3d(BaseRad, 0.0, 0.0), -maxRad, 0.0, -BaseRad, 100);
+            var x = Intersection.CurveCurve(involuteCrv, new Circle(PitchRad).ToNurbsCurve(), tolerance, 0);
+            involuteCrv.Rotate(-PointAngle(involuteCrv.PointAt(x[0].ParameterA)), Vector3d.ZAxis, Point3d.Origin);
+            x = Intersection.CurveCurve(involuteCrv, addCir.ToNurbsCurve(), tolerance, 0);
+            involuteCrv = involuteCrv.Trim(x[0].ParameterA, involuteCrv.Domain.T1);
+            involuteCrv.Rotate(Math.PI / 2 / n, Vector3d.ZAxis, Point3d.Origin);
+            var trochoidCrv = MoveAndRotate(trochoidStart, -maxRad / 3.0, maxRad / 1.6, -PitchRad, 100);
+            x = Intersection.CurveCurve(involuteCrv, trochoidCrv, tolerance, 0);
+            double ta, tb;
+            if (x.Count != 0)
+            {
+                ta = x[0].ParameterA;
+                tb = x[0].ParameterB;
+            }
+            else
+            {
+                involuteCrv.ClosestPoints(trochoidCrv, out var pa, out var pb);
+                involuteCrv.ClosestPoint(pa, out ta);
+                trochoidCrv.ClosestPoint(pb, out tb);
+            }
+            involuteCrv = involuteCrv.Trim(involuteCrv.Domain[0], ta);
+            var c = involuteCrv;
             if (dedendum > 0.0)
             {
-                trochoidCurve = trochoidCurve.Trim(trochoidCurve.Domain[0], x[0].ParameterB);
-                x = Intersection.CurveCurve(trochoidCurve, dedCircle.ToNurbsCurve(), tolerance, 0);
-                trochoidCurve = trochoidCurve.Trim(x[0].ParameterA, trochoidCurve.Domain[0]);
-                c = Curve.JoinCurves(new[] { involuteCurve, trochoidCurve }, tolerance)[0];
+                trochoidCrv = trochoidCrv.Trim(trochoidCrv.Domain[0], tb);
+                x = Intersection.CurveCurve(trochoidCrv, dedCir.ToNurbsCurve(), tolerance, 0);
+                trochoidCrv = trochoidCrv.Trim(x[0].ParameterA, trochoidCrv.Domain[0]);
+                if (involuteCrv is null)
+                {
+                    x = Intersection.CurveCurve(trochoidCrv, addCir.ToNurbsCurve(), tolerance, 0);
+                    c = x.Count > 0 ? trochoidCrv.Trim(trochoidCrv.Domain[0], x[0].ParameterA) : trochoidCrv;
+                    c.Reverse();
+                }
+                else
+                    c = Curve.JoinCurves(new[] { involuteCrv, trochoidCrv }, tolerance)[0];
             }
-
-            var a1 = PointAngle(c.PointAtEnd); //start, end
-            var arc1 = new Arc(dedCircle, new Interval(-a1, a1));
-            var a2 = PointAngle(c.PointAtStart); //start, end
-            var arc2 = new Arc(addCircle, new Interval(a2, 2 * angle - a2));
-
-            var d = Curve.JoinCurves(new[] { arc1.ToNurbsCurve(), c, arc2.ToNurbsCurve() }, tolerance)[0];
-            var curves = new List<Curve> { d };
-            var e = c.DuplicateCurve();
-            e.Transform(Transform.Mirror(Point3d.Origin, Vector3d.YAxis));
-            curves.Add(e);
+            var a1 = PointAngle(c.PointAtEnd);
+            var a2 = PointAngle(c.PointAtStart);
+            var arc1 = new Arc(dedCir, new Interval(-a1, a1));
+            var arc2 = new Arc(addCir, new Interval(a2, 2 * angle - a2));
+            var d = c.DuplicateCurve();
+            d.Transform(Transform.Mirror(Point3d.Origin, Vector3d.YAxis));
+            var crvArr = new Curve[n];
+            crvArr[0] = Curve.JoinCurves(new[] { arc1.ToNurbsCurve(), c, arc2.ToNurbsCurve(), d }, tolerance)[0];
             var xForm = Transform.Rotation(Math.PI / n * 2, Point3d.Origin);
-            var f = Curve.JoinCurves(curves, tolerance)[0];
-            curves = new List<Curve>() { f };
             for (var i = 1; i < n; i++)
             {
-                var g = curves[i - 1].DuplicateCurve();
-                g.Transform(xForm);
-                curves.Add(g);
+                crvArr[i] = crvArr[i - 1].DuplicateCurve();
+                crvArr[i].Transform(xForm);
             }
-            GearCurve = Curve.JoinCurves(curves, tolerance)[0];
-            xForm = Transform.PlaneToPlane(Plane.WorldXY, Plane);
-            GearCurve.Transform(xForm);
+            GearCurve = Curve.JoinCurves(crvArr, tolerance)[0];
+            GearCurve.Transform(Transform.PlaneToPlane(Plane.WorldXY, Plane));
         }
         private static Curve MoveAndRotate(Point3d start, double d0, double d1, double r, int n)
         {
@@ -143,7 +147,7 @@ namespace Planthopper.Parameter
             var dStep = (d1 - d0) / n;
             var aStep = dStep / r;
             var a0 = d0 / r;
-            for (var i = 0; i < n + 1; i++)
+            for (var i = 0; i <= n; i++)
             {
                 var sin = Math.Sin(a0);
                 var cos = Math.Cos(a0);
@@ -158,13 +162,12 @@ namespace Planthopper.Parameter
         }
         private static double PointAngle(Point3d point) => Math.Atan(point.Y / point.X);
         public override string ToString() => $"{(IsExternal ? "External" : "Internal")} Gear (N={N}, W={GH_Format.FormatDouble(Width)}, P={GH_Format.FormatDouble(PAngle)})";
-
         public Mesh ToMesh()
         {
             var pl = GearCurve.ToPolyline(-1, -1, 0.2, 10, 100, 0.1, 1, 50, false).ToPolyline();
             if (IsExternal)
             {
-                if (Hole > DedRadius || Hole < 0.01)
+                if (Hole > DedRad || Hole < 0.01)
                 {
                     pl.Add(pl[0]);
                     return Mesh.CreateFromTessellation(pl, new List<Polyline> { pl }, Plane, false);
@@ -186,7 +189,7 @@ namespace Planthopper.Parameter
             }
             else
             {
-                var circle = Polyline.CreateCircumscribedPolygon(new Circle(Plane, Hole + AddRadius), 60);
+                var circle = Polyline.CreateCircumscribedPolygon(new Circle(Plane, Hole + AddRad), 60);
                 var pts = new List<Point3d>(pl);
                 pts.AddRange(circle);
                 pl.Add(pl[0]);
@@ -203,7 +206,7 @@ namespace Planthopper.Parameter
                 return mesh;
             }
         }
-        public Brep ToBrep() => Brep.CreatePlanarBreps(new[] { GearCurve, new Circle(Plane, IsExternal ? Hole : AddRadius + Hole).ToNurbsCurve() }, RhinoDoc.ActiveDoc.ModelAbsoluteTolerance)[0];
+        public Brep ToBrep() => Brep.CreatePlanarBreps(new[] { GearCurve, new Circle(Plane, IsExternal ? Hole : AddRad + Hole).ToNurbsCurve() }, RhinoDoc.ActiveDoc.ModelAbsoluteTolerance)[0];
         public void XFormAll(Transform xForm)
         {
             var plane = Plane;

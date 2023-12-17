@@ -75,21 +75,21 @@ namespace Planthopper
 
             else if (type == 0 && parentGear.IsExternal || type == 2 && !parentGear.IsExternal)
             {
-                var vector = (parentGear.PitchRadius + gear.PitchRadius) * parentPlane.XAxis;
+                var vector = (parentGear.PitchRad + gear.PitchRad) * parentPlane.XAxis;
                 vector.Rotate(angle, parentPlane.ZAxis);
                 gear.XFormAll(Transform.Translation(new Vector3d(vector)));
 
-                angle += (-parentGear.Rotation + angle) * (parentGear.BaseRadius / gear.BaseRadius);
+                angle += (-parentGear.Rotation + angle) * (parentGear.BaseRad / gear.BaseRad);
                 angle += n % 2 == 0 ? Math.PI / n : 0;
                 gear.Rotate(angle);
             }
             else
             {
-                var vector = (gear.PitchRadius - parentGear.PitchRadius) * parentPlane.XAxis;
+                var vector = (gear.PitchRad - parentGear.PitchRad) * parentPlane.XAxis;
                 vector.Rotate(angle, parentPlane.ZAxis);
                 gear.XFormAll(Transform.Translation(new Vector3d(vector)));
                 angle *= -1;
-                angle += (parentGear.Rotation + angle) * (-parentGear.BaseRadius / gear.BaseRadius);
+                angle += (parentGear.Rotation + angle) * (-parentGear.BaseRad / gear.BaseRad);
                 angle += (parentGear.N % 2) == 0 ? Math.PI / n : 0;
                 angle += (n % 2) == 0 ? Math.PI / n : 0;
                 gear.Rotate(-angle);

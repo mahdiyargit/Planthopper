@@ -32,17 +32,17 @@ namespace Planthopper
             dataAccess.SetData(1, g.IsExternal ? "External" : "Internal");
             dataAccess.SetData(2, g.N);
             dataAccess.SetData(3, g.Plane);
-            dataAccess.SetData(4, new Circle(g.Plane, g.PitchRadius));
-            dataAccess.SetData(5, new Circle(g.Plane, g.BaseRadius));
-            dataAccess.SetData(6, new Circle(g.Plane, g.AddRadius));
-            dataAccess.SetData(7, new Circle(g.Plane, g.DedRadius));
+            dataAccess.SetData(4, new Circle(g.Plane, g.PitchRad));
+            dataAccess.SetData(5, new Circle(g.Plane, g.BaseRad));
+            dataAccess.SetData(6, new Circle(g.Plane, g.AddRad));
+            dataAccess.SetData(7, new Circle(g.Plane, g.DedRad));
             if (g.IsExternal)
             {
-                if (g.Hole < g.DedRadius)
+                if (g.Hole < g.DedRad)
                     dataAccess.SetData(8, new Circle(g.Plane, g.Hole));
             }
             else
-                dataAccess.SetData(8, new Circle(g.Plane, g.Hole + g.AddRadius));
+                dataAccess.SetData(8, new Circle(g.Plane, g.Hole + g.AddRad));
         }
         protected override System.Drawing.Bitmap Icon => Properties.Resources.deconstructGear;
         public override GH_Exposure Exposure => GH_Exposure.secondary;

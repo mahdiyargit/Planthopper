@@ -10,7 +10,6 @@ using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Windows.Forms;
-
 namespace Planthopper
 {
     public class ConstructGearComp : GH_Component
@@ -40,6 +39,7 @@ namespace Planthopper
             type.AddNamedValue("Axle", 1);
             type.AddNamedValue("Internal", 2);
         }
+
         protected override void RegisterOutputParams(GH_OutputParamManager pManager) =>
             pManager.AddParameter(new GH_GearParam(), "Gear", "G", "Gear", GH_ParamAccess.item);
         protected override void BeforeSolveInstance()
@@ -116,13 +116,11 @@ namespace Planthopper
             Menu_AppendSeparator(menu);
             Menu_AppendItem(menu, "Preview Mesh", Click, null, true, _previewMesh);
         }
-
         private void Click(object sender, EventArgs e)
         {
             _previewMesh = !_previewMesh;
             ExpireSolution(true);
         }
-
         public override void DrawViewportMeshes(IGH_PreviewArgs args)
         {
             if (!_previewMesh) return;
@@ -130,13 +128,11 @@ namespace Planthopper
             foreach (var mesh in _meshes)
                 args.Display.DrawMeshShaded(mesh, mat);
         }
-
         public override bool Write(GH_IWriter writer)
         {
             writer.SetBoolean("PreviewMesh", _previewMesh);
             return base.Write(writer);
         }
-
         public override bool Read(GH_IReader reader)
         {
             var previewMesh = reader.GetBoolean("PreviewMesh");
